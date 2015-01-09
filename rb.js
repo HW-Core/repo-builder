@@ -6,6 +6,11 @@ var path = require('path');
 var fs = require('fs');
 var Hw2Core = require('../../../modules/js/src/kernel');
 
+
+/*
+* USAGE: rb <repoName> <pkgName>  [token|user:pass]
+*/
+
 Hw2Core(function () {
     var $ = this;
     $.Loader.load([
@@ -19,9 +24,9 @@ Hw2Core(function () {
 
         if (!ghRepo || !pkg)
             throw new Error("You must specify the github repository and package name\n\
-                Use: rb <repoName> <pkgName> [token]");
+                Use: rb <repoName> <pkgName> [token|user:pass]");
 
-        var folderName = $.Path.basename(pkg);
+        var folderName = ghRepo; //$.Path.basename(pkg);
         var folderPath = path.join(process.cwd(), folderName);
 
         var opt = {};
@@ -31,29 +36,11 @@ Hw2Core(function () {
             auth.indexOf(prefix) === 0 ? (opt.token = auth.substring(prefix.length)) : (opt.auth = auth);
         }
 
-        // temporary alternative to library
-        var url = 'https://api.github.com/orgs/hw2-core/repos';
-        if (opt.token) {
-            url += "?access_token=" + opt.token;
-        }
-
-        var args = ['-i', '-d', '{"name":"' + ghRepo + '"}', url];
-        if (opt.auth) {
-            args.push("-u");
-            args.push(opt.auth);
-        }
-
-        var ghCreate = spawn('curl', args);
-
-        //ghCreate.stderr.on('data', function (data) {
-        //    throw new Error("Cannot create remote repo because of : " + data);
-        //});
-
         console.log("Creating github repository : " + ghRepo);
 
         // create repository on github
-        // gitHub.createRepo("orgs/hw2-core", ghRepo, function () {
-        ghCreate.on('close', function (data) {
+        var gitHub = $.NodeJs.GitHub(opt);
+        gitHub.createRepo("orgs/hw2-core", ghRepo, function () {
             // wait github 
             setTimeout(function () {
                 console.log("Cloning created repository on : " + folderName);
