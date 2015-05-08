@@ -49,13 +49,13 @@ Hw2Core(function () {
                 // create local master branch
                 clone.on('close', function (data) {
                     createBranch("tests", function () {
-                        createBranch("doc", function () {
+                        createBranch("gh-pages", function () {
                             console.log("Creating json for pakage: " + pkg);
                             saveJson({
                                 name: pkg,
                                 devDependencies: {
                                     '%tests': 'hw2-core/' + ghRepo + '#tests',
-                                    '%doc': 'hw2-core/' + ghRepo + '#doc'
+                                    '%doc': 'hw2-core/' + ghRepo + '#gh-pages'
                                 }
                             }, folderName);
 
