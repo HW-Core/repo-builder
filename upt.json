@@ -1,8 +1,8 @@
 {
-  "name": "hw2/bin/scripts/repo-builder",
+  "name": "hwcore/bin/scripts/repo-builder",
   "dependencies": {
-    "%github": "hw2-core/js-library-nodejs-github",
-    "%git": "hw2-core/js-library-nodejs-git",
-    "%fs": "hw2-core/js-library-filesystem"
+    "%github": "hw-core/js-library-nodejs-github",
+    "%git": "hw-core/js-library-nodejs-git",
+    "%fs": "hw-core/js-library-filesystem"
   }
 }

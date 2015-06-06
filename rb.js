@@ -4,19 +4,19 @@ var spawn = require('child_process').spawn;
 var exec = require('child_process').exec;
 var path = require('path');
 var fs = require('fs');
-var Hw2Core = require('../../../modules/js/src/kernel');
+var HWCore = require('../../../modules/js/src/kernel');
 
 
 /*
 * USAGE: rb <repoName> <pkgName>  [token|user:pass]
 */
 
-Hw2Core(function () {
+HWCore(function () {
     var $ = this;
     $.Loader.load([
-        "PATH_JS_LIB:nodejs/github/index.js",
-        "PATH_JS_LIB:nodejs/git/index.js",
-        "PATH_JS_LIB:filesystem/index.js"
+        "{PATH_JS_LIB}nodejs/github/index.js",
+        "{PATH_JS_LIB}nodejs/git/index.js",
+        "{PATH_JS_LIB}filesystem/index.js"
     ], function () {
         var ghRepo = process.argv[2]; //github repo name
         var pkg = process.argv[3]; // pkg name
@@ -40,22 +40,22 @@ Hw2Core(function () {
 
         // create repository on github
         var gitHub = $.NodeJs.GitHub(opt);
-        gitHub.createRepo("orgs/hw2-core", ghRepo, function () {
+        gitHub.createRepo("orgs/hw-core", ghRepo, function () {
             // wait github 
             setTimeout(function () {
                 console.log("Cloning created repository on : " + folderName);
 
-                var clone = spawn('git', ['clone', 'git@github.com:hw2-core/' + ghRepo + '.git', folderName], {env: process.env, cwd: process.cwd()});
+                var clone = spawn('git', ['clone', 'git@github.com:hw-core/' + ghRepo + '.git', folderName], {env: process.env, cwd: process.cwd()});
                 // create local master branch
                 clone.on('close', function (data) {
-                    createBranch("tests", function () {
-                        createBranch("gh-pages", function () {
+                    createBranch("tests", "tests", function () {
+                        createBranch("gh-pages", "doc", function () {
                             console.log("Creating json for pakage: " + pkg);
                             saveJson({
                                 name: pkg,
                                 devDependencies: {
-                                    '%tests': 'hw2-core/' + ghRepo + '#tests',
-                                    '%doc': 'hw2-core/' + ghRepo + '#gh-pages'
+                                    '%tests': 'hw-core/' + ghRepo + '#tests',
+                                    '%doc': 'hw-core/' + ghRepo + '#gh-pages'
                                 }
                             }, folderName);
 
@@ -73,9 +73,9 @@ Hw2Core(function () {
 
                 // push everything online
                 var pushOnline = function () {
-                    gitCommit(folderPath, function () {
-                        gitCommit(path.join(folderPath, "doc"), function () {
-                            gitCommit(path.join(folderPath, "tests"));
+                    gitCommit(folderPath, "master", function () {
+                        gitCommit(path.join(folderPath, "doc"), "gh-pages", function () {
+                            gitCommit(path.join(folderPath, "tests"), "tests");
                         });
                     });
                 };
@@ -86,28 +86,28 @@ Hw2Core(function () {
                  */
 
 
-                function createBranch (name, callback) {
-                    console.log("Creating branch : " + name);
+                function createBranch (branchName, folderName, callback) {
+                    console.log("Creating branch : " + folderName);
                     var src = path.join(folderPath, '.git');
-                    var destBase = path.join(folderPath, name);
+                    var destBase = path.join(folderPath, folderName);
                     var dest = path.join(destBase, '.git');
-                    fs.mkdir(path.join(folderPath, name), "0755");
+                    fs.mkdir(destBase, "0755");
 
                     console.log("Copying from " + src + " to " + dest);
                     exec("cp -r " + src + " " + dest, function (error, stdout, stderr) {
                         if (error !== null) {
                             console.log("exec error: " + error);
                         } else {
-                            var checkout = spawn('git', ['checkout', '--orphan', name], {cwd: destBase});
+                            var checkout = spawn('git', ['checkout', '--orphan', branchName], {cwd: destBase});
                             checkout.on('close', function (data) {
                                 var clean = spawn('git', ['rm', '-rf', '.'], {cwd: destBase});
                                 clean.on('close', function (data) {
-                                    console.log("Creating json for pakage: " + pkg + '/' + name);
+                                    console.log("Creating json for pakage: " + pkg + '/' + folderName);
 
                                     saveJson({
-                                        name: pkg + '/' + name,
+                                        name: pkg + '/' + folderName,
                                         dependencies: {
-                                            '%parent': 'hw2-core/' + ghRepo,
+                                            '%parent': 'hw-core/' + ghRepo,
                                         }
                                     }, destBase);
 
@@ -132,23 +132,35 @@ Hw2Core(function () {
                     fs.writeFileSync(file, jsonStr);
                 };
 
-                var gitCommit = function (cwd, callback) {
+                var gitCommit = function (cwd, branch, callback) {
                     console.log("Adding and committing for " + cwd);
                     var add = spawn('git', ['add', '.'], {cwd: cwd});
                     add.on('close', function (data) {
                         var commit = spawn('git', ['commit', '-m', 'Initial commit'], {cwd: cwd});
                         commit.on('close', function (data) {
-                            //gitPush(cwd, callback);
-                            callback && callback();
+							console.log("git commit terminated with code: "+data);
+                            gitPush(cwd, branch, callback);
                         });
+
+			            commit.on('error', function (data) {
+			                console.log("error: "+data);
+			            });
+                    });
+
+                    add.on('error', function (data) {
+                        console.log("error: "+data);
                     });
                 };
 
-                var gitPush = function (cwd, callback) {
-                    var push = spawn('git', ['push', 'origin'], {cwd: cwd});
+                var gitPush = function (cwd, branch, callback) {
+                    var push = spawn('git', ['push', 'origin',branch], {cwd: cwd});
                     push.on('close', function (data) {
-                        console.log(data);
+                        console.log("git push terminated with code: "+data);
                         callback && callback();
+                    });
+
+                    push.on('error', function (data) {
+                        console.log("error: "+data);
                     });
                 };
 
